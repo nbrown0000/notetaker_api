@@ -1,10 +1,13 @@
 const express = require("express");
 const app = express();
 const bodyParser = require('body-parser')
+var cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
 
 app.use(bodyParser.json())
+app.use(cors());
+
 var knex = require('knex')({
   client: 'pg',
   connection: {
@@ -25,20 +28,18 @@ app.get("/", (req,res) => {
 })
 
 app.post("/login", (req,res) => {
-  knex('users').where('email',req.body.email)
-    .then(users => {
-      if(!users[0]) res.send(loginError)
-
-      const emailMatches = users[0].email === req.body.email;
-      const passwordMatches = users[0].password = req.body.password;
-      
-      if(emailMatches && passwordMatches) { res.send(users[0]) }
-      else { res.send(loginError) }
-    })
-    .catch(err => {
-      console.log("Error accessing database:",err);
-      res.send("Error accessing database:",err);
-    })
+    knex('users')
+      .where({ email: req.body.email, password: req.body.password })
+      .then(users => {
+        if(!users[0]) {
+          res.status(404).send(loginError);
+          throw new Error('user not found')
+        }
+        const emailMatches = users[0].email === req.body.email;
+        const passwordMatches = users[0].password = req.body.password;
+        emailMatches && passwordMatches ? res.send(users[0]) : res.status(404).send(loginError)
+      })
+      .catch(err => console.error(err.message))
 })
 
 app.post("/register",(req,res) => {
