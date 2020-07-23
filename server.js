@@ -2,8 +2,9 @@ const express = require("express");
 const app = express();
 const bodyParser = require('body-parser')
 var cors = require('cors');
-const dotenv = require('dotenv');
-dotenv.config();
+if(process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 app.use(bodyParser.json())
 app.use(cors());
@@ -29,15 +30,15 @@ app.get("/", (req,res) => {
 
 app.post("/login", (req,res) => {
     knex('users')
-      .where({ email: req.body.email, password: req.body.password })
+      .where({ username: req.body.username, password: req.body.password })
       .then(users => {
         if(!users[0]) {
           res.status(404).send(loginError);
           throw new Error('user not found')
         }
-        const emailMatches = users[0].email === req.body.email;
+        const usernameMatches = users[0].username === req.body.username;
         const passwordMatches = users[0].password = req.body.password;
-        emailMatches && passwordMatches ? res.send(users[0]) : res.status(404).send(loginError)
+        usernameMatches && passwordMatches ? res.send(users[0]) : res.status(404).send(loginError)
       })
       .catch(err => console.error(err.message))
 })
@@ -58,4 +59,5 @@ app.post("/register",(req,res) => {
   })
 })
 
-app.listen(process.env.PORT, () => console.log(`Listening on port ${process.env.PORT}`))
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`Listening on port ${process.env.PORT}`))
