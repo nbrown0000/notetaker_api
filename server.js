@@ -38,7 +38,17 @@ app.post("/login", (req,res) => {
         }
         const usernameMatches = users[0].username === req.body.username;
         const passwordMatches = users[0].password = req.body.password;
-        usernameMatches && passwordMatches ? res.send(users[0]) : res.status(404).send(loginError)
+        if(usernameMatches && passwordMatches) {
+          const userObject = {
+            user_id: users[0].user_id,
+            username: users[0].username,
+            created: users[0].created,
+            last_login: users[0].last_login
+          }
+          res.send(userObject)
+        } else {
+          res.status(404).send(loginError)
+        }
       })
       .catch(err => console.error(err.message))
 })
