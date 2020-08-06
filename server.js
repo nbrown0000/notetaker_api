@@ -19,7 +19,7 @@ var knex = require('knex')({
   }
 });
 
-const loginError = "Username or password incorret."
+const loginError = "Username or password incorrect."
 
 app.get("/", (req,res) => {
   knex('users').select('*')
@@ -34,18 +34,15 @@ app.post("/login", (req,res) => {
       .then(users => {
         if(!users[0]) {
           res.status(404).send(loginError);
-          throw new Error('user not found')
+          throw new Error('user not found');
         }
         const usernameMatches = users[0].username === req.body.username;
-        const passwordMatches = users[0].password = req.body.password;
+        const passwordMatches = users[0].password === req.body.password;
         if(usernameMatches && passwordMatches) {
           const userObject = {
-            user_id: users[0].user_id,
-            username: users[0].username,
-            created: users[0].created,
-            last_login: users[0].last_login
-          }
-          res.send(userObject)
+            user_id: users[0].user_id
+          };
+          res.send(userObject);
         } else {
           res.status(404).send(loginError)
         }
