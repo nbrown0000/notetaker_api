@@ -40,7 +40,8 @@ app.post("/login", (req,res) => {
         const passwordMatches = users[0].password === req.body.password;
         if(usernameMatches && passwordMatches) {
           const userObject = {
-            user_id: users[0].user_id
+            user_id: users[0].user_id,
+            username: users[0].username
           };
           res.send(userObject);
         } else {
@@ -52,17 +53,44 @@ app.post("/login", (req,res) => {
 
 app.post("/register",(req,res) => {
   knex('users').insert({
-    name: req.body.name,
+    username: req.body.username,
     email: req.body.email,
-    password: req.body.password
+    password: req.body.password,
+    created: new Date()
   })
   .then(users => {
     if(!users) { throw new Error("user already exists!") }
-    res.send(users[0])
+    res.status(200).send("Registered sucessfully")
   })
   .catch(err => {
     res.send('Unable to register user')
-    console.log(err); throw err;
+    console.log(err);
+    throw err;
+  })
+})
+
+app.post("/getlists", (req,res) => {
+  knex('lists').where({ user_id: req.body.user_id})
+  .then(lists => {
+    if(!lists[0]) {
+      res.status(404).send("No lists found for user.");
+      throw new Error("No lists for user found");
+    }
+    res.send(lists)
+  })
+})
+
+app.post("/getnotes", (req,res) => {
+  if(!req.body.list_id) {
+    res.status(404).send("Invalid request.")
+  }
+  knex('notes').where({ list_id: req.body.list_id})
+  .then(notes => {
+    if(!notes[0]) {
+      res.status(404).send("No notes found for that list");
+      throw new Error("No notes found for that list");
+    }
+    res.send(notes)
   })
 })
 
