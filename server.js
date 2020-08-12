@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const bodyParser = require('body-parser')
+const bcrypt = require('bcrypt');
 var cors = require('cors');
 if(process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
@@ -29,44 +30,49 @@ app.get("/", (req,res) => {
 })
 
 app.post("/login", (req,res) => {
-    knex('users')
-      .where({ username: req.body.username, password: req.body.password })
-      .then(users => {
-        if(!users[0]) {
-          res.status(404).send(loginError);
-          throw new Error('user not found');
-        }
-        const usernameMatches = users[0].username === req.body.username;
-        const passwordMatches = users[0].password === req.body.password;
-        if(usernameMatches && passwordMatches) {
-          const userObject = {
-            user_id: users[0].user_id,
-            username: users[0].username
-          };
+  if(!req.body.username || !req.body.password) {
+    res.status(404).send(loginError)
+  }
+  knex('users')
+    .where({ username: req.body.username })
+    .then(users => {
+      if(!users[0]) {
+        res.status(404).send(loginError);
+        throw new Error('user not found');
+      }
+      bcrypt.compare(req.body.password, users[0].password, function(err,result) {
+        if(result) {
+          const userObject = { user_id: users[0].user_id };
           res.send(userObject);
         } else {
           res.status(404).send(loginError)
         }
       })
-      .catch(err => console.error(err.message))
+    })
+    .catch(err => console.error(err.message))
 })
 
 app.post("/register",(req,res) => {
-  knex('users').insert({
-    username: req.body.username,
-    email: req.body.email,
-    password: req.body.password,
-    created: new Date()
+  const saltRounds = 10;
+  bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+    knex('users').insert({
+      username: req.body.username,
+      email: req.body.email,
+      password: hash,
+      created: new Date()
+    })
+    .then(users => {
+      if(!users) { throw new Error("user already exists!") }
+      res.status(200).json("Registered sucessfully")
+    })
+    .catch(err => {
+      res.send('Unable to register user')
+      console.log(err);
+      throw err;
+    })
   })
-  .then(users => {
-    if(!users) { throw new Error("user already exists!") }
-    res.status(200).send("Registered sucessfully")
-  })
-  .catch(err => {
-    res.send('Unable to register user')
-    console.log(err);
-    throw err;
-  })
+
+  
 })
 
 app.post("/getlists", (req,res) => {
@@ -80,15 +86,43 @@ app.post("/getlists", (req,res) => {
   })
 })
 
+app.post("/addlist", (req,res) => {
+  knex('users').where({ user_id: req.body.user_id })
+  .then(users => {
+    if(!users[0]) {
+      res.status(404).send("User not found!")
+      throw new Error("No user found!")
+    }
+    knex('lists').insert({
+      title: req.body.title,
+      created: new Date(),
+      user_id: req.body.user_id
+    })
+    .then(lists => {
+      if(!lists) { throw new Error("Unable to add list.") }
+      res.status(200).send("list added sucessfully")
+    })
+    .catch(err => {
+      res.send('Unable to add list')
+      console.log(err);
+      throw err;
+    })
+  })
+})
+
+app.post("/addnote", (req,res) => {
+
+})
+
 app.post("/getnotes", (req,res) => {
   if(!req.body.list_id) {
     res.status(404).send("Invalid request.")
   }
   knex('notes').where({ list_id: req.body.list_id})
   .then(notes => {
-    if(!notes[0]) {
-      res.status(404).send("No notes found for that list");
-      throw new Error("No notes found for that list");
+    if(!notes) {
+      res.status(404).send("Error fetching notes");
+      throw new Error("Error fetching notes");
     }
     res.send(notes)
   })
