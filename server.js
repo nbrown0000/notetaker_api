@@ -75,6 +75,11 @@ app.post("/register",(req,res) => {
   
 })
 
+async function getListCount(list) {
+  let count = await knex('notes').where({ list_id: list.list_id }).count('body')
+  return count
+}
+
 app.post("/getlists", (req,res) => {
   knex('lists').where({ user_id: req.body.user_id})
   .then(lists => {
@@ -82,7 +87,31 @@ app.post("/getlists", (req,res) => {
       res.status(404).send("No lists found for user.");
       throw new Error("No lists for user found");
     }
-    res.send(lists)
+
+    // map each list to generate object containing list and note count
+    const results = lists.map(async (list) => {
+      let count = await getListCount(list)
+      return { list: list, count: count[0].count }
+    })
+    Promise.all(results).then(data => res.send(data))
+    
+    
+
+
+  })
+})
+
+app.post("/getnotes", (req,res) => {
+  if(!req.body.list_id) {
+    res.status(404).send("Invalid request.")
+  }
+  knex('notes').where({ list_id: req.body.list_id})
+  .then(notes => {
+    if(!notes) {
+      res.status(404).send("Error fetching notes");
+      throw new Error("Error fetching notes");
+    }
+    res.send(notes)
   })
 })
 
@@ -91,7 +120,7 @@ app.post("/addlist", (req,res) => {
   .then(users => {
     if(!users[0]) {
       res.status(404).send("User not found!")
-      throw new Error("No user found!")
+      throw new Error("User not found!")
     }
     knex('lists').insert({
       title: req.body.title,
@@ -111,22 +140,29 @@ app.post("/addlist", (req,res) => {
 })
 
 app.post("/addnote", (req,res) => {
-
-})
-
-app.post("/getnotes", (req,res) => {
-  if(!req.body.list_id) {
-    res.status(404).send("Invalid request.")
-  }
-  knex('notes').where({ list_id: req.body.list_id})
-  .then(notes => {
-    if(!notes) {
-      res.status(404).send("Error fetching notes");
-      throw new Error("Error fetching notes");
+  knex('lists').where({ list_id: req.body.list_id })
+  .then(lists => {
+    if(!lists[0]) {
+      res.status(404).send("List not found!")
+      throw new Error("List not found!")
     }
-    res.send(notes)
+    knex('notes').insert({
+      body: req.body.body,
+      list_id: req.body.list_id
+    })
+    .then(notes => {
+      if(!notes) { throw new Error("Unable to add note.")}
+      res.status(200).send("Note added successfully")
+    })
+    .catch(err => {
+      res.send("Unable to add note.");
+      console.log(err);
+      throw err;
+    })
   })
 })
+
+
 
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => console.log(`Listening on port ${process.env.PORT}`))
