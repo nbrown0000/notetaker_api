@@ -101,6 +101,7 @@ app.post("/getlists", (req,res) => {
   })
 })
 
+
 app.post("/getnotes", (req,res) => {
   if(!req.body.list_id) {
     res.status(404).send("Invalid request.")
@@ -111,7 +112,20 @@ app.post("/getnotes", (req,res) => {
       res.status(404).send("Error fetching notes");
       throw new Error("Error fetching notes");
     }
-    res.send(notes)
+    knex('lists').where({ list_id: req.body.list_id})
+    .then(lists => {
+      if(!lists) {
+        res.status(404).send("Error fetching list");
+        throw new Error("Error fetching list");
+      }
+      const object = {
+        list_id: lists[0].list_id,
+        title: lists[0].title,
+        notes: notes
+      }
+      res.send(object)
+    })
+    
   })
 })
 
@@ -143,19 +157,19 @@ app.post("/addnote", (req,res) => {
   knex('lists').where({ list_id: req.body.list_id })
   .then(lists => {
     if(!lists[0]) {
-      res.status(404).send("List not found!")
-      throw new Error("List not found!")
+      res.status(404).send("User not found!")
+      throw new Error("User not found!")
     }
     knex('notes').insert({
       body: req.body.body,
       list_id: req.body.list_id
     })
     .then(notes => {
-      if(!notes) { throw new Error("Unable to add note.")}
-      res.status(200).send("Note added successfully")
+      if(!notes) { throw new Error("Unable to add note.") }
+      res.status(200).send("note added sucessfully")
     })
     .catch(err => {
-      res.send("Unable to add note.");
+      res.send('Unable to add note')
       console.log(err);
       throw err;
     })
