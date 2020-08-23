@@ -191,6 +191,20 @@ app.post("/deletenote", (req,res) => {
   })
 })
 
+app.post("/deletelist", (req,res) => {
+  knex('lists').where({ list_id: req.body.list_id })
+  .del()
+  .then(lists => {
+    if(!lists) { throw new Error("Unable to delete list.") }
+    res.status(200).send("list deleted sucessfully")
+  })
+  .catch(err => {
+    res.send("Unable to delete list");
+    console.log(err);
+    throw err;
+  })
+})
+
 
 
 const PORT = process.env.PORT || 3000
