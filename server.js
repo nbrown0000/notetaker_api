@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt');
 var cors = require('cors');
+const { response } = require("express");
 if(process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
@@ -173,6 +174,20 @@ app.post("/addnote", (req,res) => {
       console.log(err);
       throw err;
     })
+  })
+})
+
+app.post("/deletenote", (req,res) => {
+  knex('notes').where({ note_id: req.body.note_id })
+  .del()
+  .then(result => {
+    if(response.ok) { res.send("Successfully deleted note") }
+    else { res.send("Unable to delete note"); }
+  })
+  .catch(err => {
+    res.send("Unable to delete note");
+    console.log(err);
+    throw err;
   })
 })
 
