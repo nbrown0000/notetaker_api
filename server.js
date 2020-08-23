@@ -43,7 +43,10 @@ app.post("/login", (req,res) => {
       }
       bcrypt.compare(req.body.password, users[0].password, function(err,result) {
         if(result) {
-          const userObject = { user_id: users[0].user_id };
+          const userObject = {
+            user_id: users[0].user_id,
+            username: users[0].username
+          };
           res.send(userObject);
         } else {
           res.status(404).send(loginError)
