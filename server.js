@@ -180,6 +180,19 @@ app.post("/addnote", (req,res) => {
   })
 })
 
+app.post("/updatenote", (req,res) => {
+  knex('notes')
+    .where({ note_id: req.body.note_id })
+    .update({ body: req.body.body })
+    .then(notes => {
+      if(!notes) {
+        res.status(404).send("Unable to update note!")
+        throw new Error("Unable to update note!");
+      }
+      res.json("Note updated successfully")
+    })
+})
+
 app.post("/deletenote", (req,res) => {
   knex('notes').where({ note_id: req.body.note_id })
   .del()
