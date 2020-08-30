@@ -207,6 +207,19 @@ app.post("/deletenote", (req,res) => {
   })
 })
 
+app.post("/updatelist", (req,res) => {
+  knex('lists')
+    .where({ list_id: req.body.list_id })
+    .update({ title: req.body.title })
+    .then(lists => {
+      if(!lists) {
+        res.status(404).send("Unable to update list!")
+        throw new Error("Unable to update list!");
+      }
+      res.json("list updated successfully")
+    })
+})
+
 app.post("/deletelist", (req,res) => {
   knex('lists').where({ list_id: req.body.list_id })
   .del()
