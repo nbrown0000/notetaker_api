@@ -247,17 +247,40 @@ app.post("/addlist", [
   })
 })
 
-app.post("/addnote", (req,res) => {
+
+
+app.post("/addnote", [
+
+  // validate inputs
+  body('list_id')
+    .escape()
+    .notEmpty().withMessage("Cannot be empty")
+    .isNumeric().withMessage("Must be a number"),
+  body('body')
+    .escape()
+    .notEmpty().withMessage("Cannot be empty")
+    .trim()
+], (req,res) => {
+  
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // add note to DB
   knex('lists').where({ list_id: req.body.list_id })
   .then(lists => {
     if(!lists[0]) {
-      res.status(404).send("User not found!")
-      throw new Error("User not found!")
+      res.status(404).send("List not found!")
+      throw new Error("List not found!")
     }
     knex('notes').insert({
       body: req.body.body,
       list_id: req.body.list_id
     })
+
+    // catch errors
     .then(notes => {
       if(!notes) { throw new Error("Unable to add note.") }
       res.status(200).send("note added sucessfully")
