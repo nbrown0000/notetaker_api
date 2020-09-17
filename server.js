@@ -357,7 +357,26 @@ app.post("/deletenote", [
   })
 })
 
-app.post("/updatelist", (req,res) => {
+app.post("/updatelist", [
+
+  // validate inputs
+  body('list_id')
+    .escape()
+    .notEmpty().withMessage("Cannot be empty")
+    .isNumeric().withMessage("Must be a number"),
+  body('title')
+    .escape()
+    .notEmpty().withMessage("Cannot be empty")
+    .trim()
+], (req,res) => {
+
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+
   knex('lists')
     .where({ list_id: req.body.list_id })
     .update({ title: req.body.title })
