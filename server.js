@@ -201,7 +201,27 @@ app.post("/getnotes", [
   })
 })
 
-app.post("/addlist", (req,res) => {
+app.post("/addlist", [
+
+  // sanitize and validate input
+  body('user_id')
+    .escape()
+    .isNumeric().withMessage("Must be a number")
+    .notEmpty().withMessage("Cannot be empty"),
+  body('title')
+    .escape()
+    .isLength({ max: 50 }).withMessage("Cannot be longer than 50 characters")
+    .notEmpty().withMessage("Cannot be empty")
+    .trim()
+], (req,res) => {
+
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // insert list to DB
   knex('users').where({ user_id: req.body.user_id })
   .then(users => {
     if(!users[0]) {
@@ -213,6 +233,8 @@ app.post("/addlist", (req,res) => {
       created: new Date(),
       user_id: req.body.user_id
     })
+
+    // catch errors
     .then(lists => {
       if(!lists) { throw new Error("Unable to add list.") }
       res.status(200).send("list added sucessfully")
