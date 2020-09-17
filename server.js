@@ -389,7 +389,21 @@ app.post("/updatelist", [
     })
 })
 
-app.post("/deletelist", (req,res) => {
+app.post("/deletelist", [
+
+  // validate inputs
+  body('list_id')
+  .escape()
+  .notEmpty().withMessage("Cannot be empty")
+  .isNumeric().withMessage("Must be a number")
+], (req,res) => {
+
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   knex('lists').where({ list_id: req.body.list_id })
   .del()
   .then(lists => {
