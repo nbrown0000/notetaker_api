@@ -31,10 +31,26 @@ app.get("/", (req,res) => {
     })
 })
 
-app.post("/login", (req,res) => {
-  if(!req.body.username || !req.body.password) {
-    res.status(404).send(loginError)
+app.post("/login", [
+
+  // sanitize and validate input
+  body('username')
+    .isString()
+    .escape()
+    .notEmpty()
+    .withMessage("Must not be empty"),
+  body('password')
+    .isLength({ min: 6 })
+    .escape()
+    .notEmpty()
+    .withMessage("Must not be empty")
+], (req,res) => {
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
+
   knex('users')
     .where({ username: req.body.username })
     .then(users => {
@@ -61,9 +77,11 @@ app.post("/register", [
   
   // sanitize and validate input
   body('password')
+    .escape()
     .isLength({ min: 6 })
     .withMessage("password must be at least 6 characters long"),
   body('email')
+    .escape()
     .isEmail()
     .withMessage("email must be valid format")
     .normalizeEmail()
@@ -99,6 +117,8 @@ app.post("/register", [
   
 })
 
+
+// async helper function for /getlists route
 async function getListCount(list) {
   let count = await knex('notes').where({ list_id: list.list_id }).count('body')
   return count
