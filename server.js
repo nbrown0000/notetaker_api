@@ -158,12 +158,26 @@ app.post("/getlists", [
 })
 
 
-app.post("/getnotes", (req,res) => {
-  if(!req.body.list_id) {
-    res.status(404).send("Invalid request.")
+app.post("/getnotes", [
+
+  // sanitize and validate input
+  body('list_id')
+    .escape()
+    .notEmpty().withMessage("Must not be empty")
+    .isNumeric().withMessage("Must be a number")
+], (req,res) => {
+
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
+  
+  // get notes from DB
   knex('notes').where({ list_id: req.body.list_id})
   .then(notes => {
+
+    // error handling for notes
     if(!notes) {
       res.status(404).send("Error fetching notes");
       throw new Error("Error fetching notes");
@@ -174,6 +188,8 @@ app.post("/getnotes", (req,res) => {
         res.status(404).send("List not found");
         throw new Error("List not found");
       }
+
+      // return object
       const object = {
         list_id: lists[0].list_id,
         title: lists[0].title,
