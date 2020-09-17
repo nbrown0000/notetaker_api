@@ -326,9 +326,26 @@ app.post("/updatenote", [
     })
 })
 
-app.post("/deletenote", (req,res) => {
+app.post("/deletenote", [
+
+  // validate inputs
+  body('note_id')
+  .escape()
+  .notEmpty().withMessage("Cannot be empty")
+  .isNumeric().withMessage("Must be a number")
+], (req,res) => {
+  
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // delete note from DB
   knex('notes').where({ note_id: req.body.note_id })
   .del()
+
+  // catch errors
   .then(result => {
     if(response.ok) { res.send("Successfully deleted note") }
     else { res.send("Unable to delete note"); }
