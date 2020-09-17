@@ -170,9 +170,9 @@ app.post("/getnotes", (req,res) => {
     }
     knex('lists').where({ list_id: req.body.list_id})
     .then(lists => {
-      if(!lists) {
-        res.status(404).send("Error fetching list");
-        throw new Error("Error fetching list");
+      if(!lists[0]) {
+        res.status(404).send("List not found");
+        throw new Error("List not found");
       }
       const object = {
         list_id: lists[0].list_id,
