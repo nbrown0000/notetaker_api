@@ -124,7 +124,22 @@ async function getListCount(list) {
   return count
 }
 
-app.post("/getlists", (req,res) => {
+app.post("/getlists", [
+
+  // sanitize and validate input
+  body('user_id')
+    .escape()
+    .notEmpty().withMessage("Must not be empty")
+    .isNumeric().withMessage("Must be a number")
+], (req,res) => {
+
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // get lists from DB
   knex('lists').where({ user_id: req.body.user_id})
   .then(lists => {
     if(!lists[0]) {
@@ -139,9 +154,6 @@ app.post("/getlists", (req,res) => {
     })
     Promise.all(results).then(data => res.send(data))
     
-    
-
-
   })
 })
 
