@@ -293,7 +293,27 @@ app.post("/addnote", [
   })
 })
 
-app.post("/updatenote", (req,res) => {
+
+
+app.post("/updatenote", [
+
+  // validate inputs
+  body('note_id')
+    .escape()
+    .notEmpty().withMessage("Cannot be empty")
+    .isNumeric().withMessage("Must be a number"),
+  body('body')
+    .escape()
+    .notEmpty().withMessage("Cannot be empty")
+    .trim()
+], (req,res) => {
+  
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   knex('notes')
     .where({ note_id: req.body.note_id })
     .update({ body: req.body.body })
