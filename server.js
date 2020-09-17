@@ -25,10 +25,7 @@ var knex = require('knex')({
 const loginError = "Username or password incorrect."
 
 app.get("/", (req,res) => {
-  knex('users').select('*')
-    .then(users => {
-      res.send(users)
-    })
+  res.status(404).send("Invalid destination")
 })
 
 app.post("/login", [
