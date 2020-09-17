@@ -4,6 +4,7 @@ const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt');
 var cors = require('cors');
 const { response } = require("express");
+const { body, validationResult } = require('express-validator');
 if(process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
@@ -56,7 +57,25 @@ app.post("/login", (req,res) => {
     .catch(err => console.error(err.message))
 })
 
-app.post("/register",(req,res) => {
+app.post("/register", [
+  
+  // sanitize and validate input
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage("password must be at least 6 characters long"),
+  body('email')
+    .isEmail()
+    .withMessage("email must be valid format")
+    .normalizeEmail()
+], (req,res) => {
+
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // hash password
   const saltRounds = 10;
   bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
     knex('users').insert({
@@ -65,6 +84,7 @@ app.post("/register",(req,res) => {
       password: hash,
       created: new Date()
     })
+    // catch user creation errors
     .then(users => {
       if(!users) { throw new Error("user already exists!") }
       res.status(200).json("Registered sucessfully")
