@@ -45,6 +45,7 @@ app.post("/login", [
   // catch validation error
   const errors = validationResult(req);
   if(!errors.isEmpty()) {
+    console.error(errors)
     return res.status(400).json({ errors: errors.array() });
   }
 
@@ -66,7 +67,7 @@ app.post("/login", [
         }
       })
     })
-    .catch(err => console.error(err.message))
+    .catch(err => console.error(err))
 })
 
 app.post("/register", [
@@ -86,7 +87,7 @@ app.post("/register", [
   // catch validation error
   const errors = validationResult(req);
   if(!errors.isEmpty()) {
-    console.log(">>>>>VALIDATION ERROR")
+    console.error(errors)
     return res.status(400).json({ errors: errors.array() });
   }
 
@@ -101,11 +102,11 @@ app.post("/register", [
     })
     // catch user creation errors
     .then(users => {
-      if(!users) { console.log(">>> USER AREADY EXISTS!") }
+      if(!users) { console.error(">>> USER AREADY EXISTS!") }
       res.status(200).json("Registered sucessfully")
     })
     .catch(err => {
-      console.log(">>> Error inserting new user: ", err.detail)
+      console.error(err)
       res.send('Unable to register user')
     })
   })
@@ -139,8 +140,8 @@ app.post("/getlists", [
   knex('lists').where({ user_id: req.body.user_id})
   .then(lists => {
     if(!lists[0]) {
-      console.log("No lists for user found");
-      res.status(404).send("No lists found for user.");
+      console.error("No lists for user found");
+      return res.status(404).send("No lists found for user.");
     }
 
     // map each list to generate object containing list and note count
@@ -148,7 +149,9 @@ app.post("/getlists", [
       let count = await getListCount(list)
       return { list: list, count: count[0].count }
     })
-    Promise.all(results).then(data => res.send(data))
+    Promise.all(results)
+      .then(data => res.send(data))
+      .catch(err => console.error(err))
     
   })
 })
@@ -175,13 +178,13 @@ app.post("/getnotes", [
 
     // error handling for notes
     if(!notes) {
-      console.log("Error fetching notes");
+      console.error("Error fetching notes");
       res.status(404).send("Error fetching notes");
     }
     knex('lists').where({ list_id: req.body.list_id})
     .then(lists => {
       if(!lists[0]) {
-        console.log("List not found");
+        console.error("List not found");
         res.status(404).send("List not found");
       }
 
@@ -207,7 +210,7 @@ app.post("/addlist", [
   body('title')
     .escape()
     .isLength({ max: 50 }).withMessage("Cannot be longer than 50 characters")
-    .notEmpty().withMessage("Cannot be empty")
+    // .notEmpty().withMessage("Cannot be empty")
     .trim()
 ], (req,res) => {
 
@@ -221,7 +224,7 @@ app.post("/addlist", [
   knex('users').where({ user_id: req.body.user_id })
   .then(users => {
     if(!users[0]) {
-      console.log("User not found!")
+      console.error("User not found!")
       res.status(404).send("User not found!")
     }
     knex('lists').insert({
@@ -232,11 +235,11 @@ app.post("/addlist", [
 
     // catch errors
     .then(lists => {
-      if(!lists) { console.log("Unable to add list.") }
+      if(!lists) { console.error("Unable to add list.") }
       res.status(200).send("list added sucessfully")
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       res.send('Unable to add list')
     })
   })
@@ -267,7 +270,7 @@ app.post("/addnote", [
   knex('lists').where({ list_id: req.body.list_id })
   .then(lists => {
     if(!lists[0]) {
-      console.log("List not found!")
+      console.error("List not found!")
       res.status(404).send("List not found!")
     }
     knex('notes').insert({
@@ -277,11 +280,11 @@ app.post("/addnote", [
 
     // catch errors
     .then(notes => {
-      if(!notes) { console.log("Unable to add note.") }
+      if(!notes) { console.error("Unable to add note.") }
       res.status(200).send("note added sucessfully")
     })
     .catch(err => {
-      console.log(err);
+      console.error(err);
       res.send('Unable to add note')      
     })
   })
@@ -306,14 +309,14 @@ app.post("/updatenote", [
   const errors = validationResult(req);
   if(!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
-  }
+  }                                                 
 
   knex('notes')
     .where({ note_id: req.body.note_id })
     .update({ body: req.body.body })
     .then(notes => {
       if(!notes) {
-        console.log("Unable to update note!");
+        console.error("Unable to update note!");
         res.status(404).send("Unable to update note!")
       }
       res.json("Note updated successfully")
@@ -345,7 +348,7 @@ app.post("/deletenote", [
     else { res.send("Unable to delete note"); }
   })
   .catch(err => {
-    console.log(err);
+    console.error(err);
     res.send("Unable to delete note");
   })
 })
@@ -375,7 +378,7 @@ app.post("/updatelist", [
     .update({ title: req.body.title })
     .then(lists => {
       if(!lists) {
-        console.log("Unable to update list!");
+        console.error("Unable to update list!");
         res.status(404).send("Unable to update list!")
       }
       res.json("list updated successfully")
@@ -400,12 +403,41 @@ app.post("/deletelist", [
   knex('lists').where({ list_id: req.body.list_id })
   .del()
   .then(lists => {
-    if(!lists) { console.log("Unable to delete list.") }
+    if(!lists) { console.error("Unable to delete list.") }
     res.status(200).send("list deleted sucessfully")
   })
   .catch(err => {
-    console.log(err);
+    console.error(err);
     res.send("Unable to delete list");
+  })
+})
+
+
+
+app.post('/mostrecentlist', [
+
+  // sanitize and validate input
+  body('user_id')
+    .escape()
+    .isNumeric().withMessage("Must be a number")
+], (req,res) => {
+
+  // catch validation error
+  const errors = validationResult(req);
+  if(!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // get lists from DB
+  knex('lists').where({ user_id: req.body.user_id}).orderBy('created', 'desc').limit(1)
+  .then(lists => {
+    if(!lists) { console.error("Unable to find list")}
+    const responseData = { list_id: lists[0].list_id }
+    res.json(responseData)
+  })
+  .catch(err => {
+    console.error(err);
+    res.send("Unable to find list");
   })
 })
 
