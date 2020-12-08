@@ -53,7 +53,6 @@ app.post("/login", [
     .then(users => {
       if(!users[0]) {
         res.status(404).send(loginError);
-        throw new Error('user not found');
       }
       bcrypt.compare(req.body.password, users[0].password, function(err,result) {
         if(result) {
@@ -87,6 +86,7 @@ app.post("/register", [
   // catch validation error
   const errors = validationResult(req);
   if(!errors.isEmpty()) {
+    console.log(">>>>>VALIDATION ERROR")
     return res.status(400).json({ errors: errors.array() });
   }
 
@@ -101,13 +101,12 @@ app.post("/register", [
     })
     // catch user creation errors
     .then(users => {
-      if(!users) { throw new Error("user already exists!") }
+      if(!users) { console.log(">>> USER AREADY EXISTS!") }
       res.status(200).json("Registered sucessfully")
     })
     .catch(err => {
+      console.log(">>> Error inserting new user: ", err.detail)
       res.send('Unable to register user')
-      console.log(err);
-      throw err;
     })
   })
 
@@ -140,8 +139,8 @@ app.post("/getlists", [
   knex('lists').where({ user_id: req.body.user_id})
   .then(lists => {
     if(!lists[0]) {
+      console.log("No lists for user found");
       res.status(404).send("No lists found for user.");
-      throw new Error("No lists for user found");
     }
 
     // map each list to generate object containing list and note count
@@ -176,14 +175,14 @@ app.post("/getnotes", [
 
     // error handling for notes
     if(!notes) {
+      console.log("Error fetching notes");
       res.status(404).send("Error fetching notes");
-      throw new Error("Error fetching notes");
     }
     knex('lists').where({ list_id: req.body.list_id})
     .then(lists => {
       if(!lists[0]) {
+        console.log("List not found");
         res.status(404).send("List not found");
-        throw new Error("List not found");
       }
 
       // return object
@@ -222,8 +221,8 @@ app.post("/addlist", [
   knex('users').where({ user_id: req.body.user_id })
   .then(users => {
     if(!users[0]) {
+      console.log("User not found!")
       res.status(404).send("User not found!")
-      throw new Error("User not found!")
     }
     knex('lists').insert({
       title: req.body.title,
@@ -233,13 +232,12 @@ app.post("/addlist", [
 
     // catch errors
     .then(lists => {
-      if(!lists) { throw new Error("Unable to add list.") }
+      if(!lists) { console.log("Unable to add list.") }
       res.status(200).send("list added sucessfully")
     })
     .catch(err => {
-      res.send('Unable to add list')
       console.log(err);
-      throw err;
+      res.send('Unable to add list')
     })
   })
 })
@@ -269,8 +267,8 @@ app.post("/addnote", [
   knex('lists').where({ list_id: req.body.list_id })
   .then(lists => {
     if(!lists[0]) {
+      console.log("List not found!")
       res.status(404).send("List not found!")
-      throw new Error("List not found!")
     }
     knex('notes').insert({
       body: req.body.body,
@@ -279,13 +277,12 @@ app.post("/addnote", [
 
     // catch errors
     .then(notes => {
-      if(!notes) { throw new Error("Unable to add note.") }
+      if(!notes) { console.log("Unable to add note.") }
       res.status(200).send("note added sucessfully")
     })
     .catch(err => {
-      res.send('Unable to add note')
       console.log(err);
-      throw err;
+      res.send('Unable to add note')      
     })
   })
 })
@@ -316,8 +313,8 @@ app.post("/updatenote", [
     .update({ body: req.body.body })
     .then(notes => {
       if(!notes) {
+        console.log("Unable to update note!");
         res.status(404).send("Unable to update note!")
-        throw new Error("Unable to update note!");
       }
       res.json("Note updated successfully")
     })
@@ -348,9 +345,8 @@ app.post("/deletenote", [
     else { res.send("Unable to delete note"); }
   })
   .catch(err => {
-    res.send("Unable to delete note");
     console.log(err);
-    throw err;
+    res.send("Unable to delete note");
   })
 })
 
@@ -379,8 +375,8 @@ app.post("/updatelist", [
     .update({ title: req.body.title })
     .then(lists => {
       if(!lists) {
+        console.log("Unable to update list!");
         res.status(404).send("Unable to update list!")
-        throw new Error("Unable to update list!");
       }
       res.json("list updated successfully")
     })
@@ -404,13 +400,12 @@ app.post("/deletelist", [
   knex('lists').where({ list_id: req.body.list_id })
   .del()
   .then(lists => {
-    if(!lists) { throw new Error("Unable to delete list.") }
+    if(!lists) { console.log("Unable to delete list.") }
     res.status(200).send("list deleted sucessfully")
   })
   .catch(err => {
-    res.send("Unable to delete list");
     console.log(err);
-    throw err;
+    res.send("Unable to delete list");
   })
 })
 
