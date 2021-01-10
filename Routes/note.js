@@ -28,7 +28,7 @@ app.post("/getnotes", [
 
   // sanitize and validate input
   body('list_id')
-    .escape()
+    // .escape()
     .notEmpty().withMessage("Must not be empty")
     .isNumeric().withMessage("Must be a number")
 ], (req,res) => {
@@ -45,24 +45,10 @@ app.post("/getnotes", [
 
     // error handling for notes
     if(!notes) {
-      console.error("Error fetching notes");
-      res.status(404).send("Error fetching notes");
+      res.send([]);
     }
-    knex('lists').where({ list_id: req.body.list_id})
-    .then(lists => {
-      if(!lists[0]) {
-        console.error("List not found");
-        res.status(404).send("List not found");
-      }
 
-      // return object
-      const object = {
-        list_id: lists[0].list_id,
-        title: lists[0].title,
-        notes: notes
-      }
-      res.send(object)
-    })
+    res.send(notes)
     
   })
 })
