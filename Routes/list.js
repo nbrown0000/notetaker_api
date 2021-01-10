@@ -57,15 +57,7 @@ app.post("/getlists", [
       console.error("No lists for user found");
       return res.status(404).send("No lists found for user.");
     }
-
-    // map each list to generate object containing list and note count
-    const results = lists.map(async (list) => {
-      let count = await getListCount(list)
-      return { list: list, count: count[0].count }
-    })
-    Promise.all(results)
-      .then(data => res.send(data))
-      .catch(err => console.error(err))
+    res.send(lists)
     
   })
 })
@@ -149,7 +141,17 @@ app.post("/updatelist", [
         console.error("Unable to update list!");
         res.status(404).send("Unable to update list!")
       }
-      res.json("list updated successfully")
+
+      knex('lists')
+        .where({ list_id: req.body.list_id })
+        .then(returnList => {
+          res.send(returnList[0])
+        })
+      
+        
+      // res.send(lists[0])
+      
+      // res.json("list updated successfully")
     })
 })
 
@@ -203,9 +205,14 @@ app.post('/mostrecentlist', [
   // get lists from DB
   knex('lists').where({ user_id: req.body.user_id}).orderBy('created', 'desc').limit(1)
   .then(lists => {
-    if(!lists) { console.error("Unable to find list")}
-    const responseData = { list_id: lists[0].list_id }
-    res.json(responseData)
+    if(!lists) { console.error("Unable to find list"); throw new Error("Unable to find list")}
+    
+    knex('notes').where({ list_id: lists[0].list_id }).count('body')
+    .then(data => {
+      // console.log(data[0])
+      res.send({ list: lists[0], count: data[0] })
+    })
+
   })
   .catch(err => {
     console.error(err);
