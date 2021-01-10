@@ -73,14 +73,14 @@ app.post("/register", [
   
   // sanitize and validate input
   body('password')
-    .escape()
     .isLength({ min: 6 })
+    .escape()
     .withMessage("password must be at least 6 characters long"),
   body('email')
-    .escape()
     .isEmail()
-    .withMessage("email must be valid format")
     .normalizeEmail()
+    .escape()
+    .withMessage("email must be valid format")
 ], (req,res) => {
 
   // catch validation error
