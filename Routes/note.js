@@ -94,6 +94,11 @@ app.post("/addnote", [
     // catch errors
     .then(notes => {
       if(!notes) { console.error("Unable to add note.") }
+      (async () => {
+        // get notes from DB
+        const notes = await getNotes(req.body.list_id)
+        res.send(notes)
+      })();
     })
     .catch(err => {
       console.error(err);
@@ -101,9 +106,7 @@ app.post("/addnote", [
     })
   })
 
-  // get notes from DB
-  const notes = await getNotes(req.body.list_id)
-  res.send(notes)
+  
 })
 
 
