@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express.Router();
 const bcrypt = require('bcrypt');
-const { body, validationResult } = require('express-validator');
+const { check, sanitize, body, validationResult } = require('express-validator');
 const cors = require('cors');
 const bodyParser = require('body-parser')
 app.use(bodyParser.json())
@@ -23,6 +23,18 @@ var knex = require('knex')({
 });
 
 
+// get notes helper function
+const getNotes = list_id => {
+  return knex('notes').where({ list_id: list_id})
+  .then(notes => {
+    // error handling for notes
+    if(!notes) { return [] }
+    // console.log(notes)
+    return notes
+  })
+}
+
+
 
 app.post("/getnotes", [
 
@@ -31,26 +43,17 @@ app.post("/getnotes", [
     // .escape()
     .notEmpty().withMessage("Must not be empty")
     .isNumeric().withMessage("Must be a number")
-], (req,res) => {
+], async(req,res) => {
 
   // catch validation error
-  const errors = validationResult(req);
+  const errors = await validationResult(req);
   if(!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
   
   // get notes from DB
-  knex('notes').where({ list_id: req.body.list_id})
-  .then(notes => {
-
-    // error handling for notes
-    if(!notes) {
-      res.send([]);
-    }
-
-    res.send(notes)
-    
-  })
+  const notes = await getNotes(req.body.list_id)
+  res.send(notes)
 })
 
 
@@ -68,10 +71,10 @@ app.post("/addnote", [
     .escape()
     .notEmpty().withMessage("Cannot be empty")
     .trim()
-], (req,res) => {
+], async (req,res) => {
   
   // catch validation error
-  const errors = validationResult(req);
+  const errors = await validationResult(req);
   if(!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
@@ -91,46 +94,73 @@ app.post("/addnote", [
     // catch errors
     .then(notes => {
       if(!notes) { console.error("Unable to add note.") }
-      res.status(200).send("note added sucessfully")
     })
     .catch(err => {
       console.error(err);
       res.send('Unable to add note')      
     })
   })
+
+  // get notes from DB
+  const notes = await getNotes(req.body.list_id)
+  res.send(notes)
 })
 
 
+// helper function for /updatenotes route
+const updateNote = note => {
+  // if note does not exist then create it
 
-app.post("/updatenote", [
+  // else update note body
+  return new Promise((resolve, reject) => {
+    knex('notes')
+    .where({ note_id: note.note_id })
+    .update({ body: note.body })
+    .then(notes => {
+      if(!notes) {
+        console.error("Unable to update note!");
+        reject("Unable to update note!")
+      }
+      resolve(notes[0])
+      // resolve("Note updated successfully")
+    })
+  })
+}
+
+app.post("/updatenotes", [
 
   // validate inputs
-  body('note_id')
+  body('notes.*.note_id')
     .escape()
     .notEmpty().withMessage("Cannot be empty")
     .isNumeric().withMessage("Must be a number"),
-  body('body')
+  body('notes.*.body')
     .escape()
     .notEmpty().withMessage("Cannot be empty")
     .trim()
-], (req,res) => {
-  
+],
+  (req,res) => {
+
   // catch validation error
   const errors = validationResult(req);
   if(!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
-  }                                                 
+  }
 
-  knex('notes')
-    .where({ note_id: req.body.note_id })
-    .update({ body: req.body.body })
-    .then(notes => {
-      if(!notes) {
-        console.error("Unable to update note!");
-        res.status(404).send("Unable to update note!")
-      }
-      res.json("Note updated successfully")
+  const promises = req.body.notes.map(note => updateNote(note))
+  Promise
+    .all(promises)
+    .then(data => {
+      // fetch lists to return
+      knex('notes').where({ list_id: req.body.list_id})
+      .then(notes => {
+        // error handling for notes
+        if(!notes) { res.send([]) }
+        res.send(notes)
+      })
     })
+    .catch(err => res.status(400).json(err))
+
 })
 
 app.post("/deletenote", [
