@@ -171,8 +171,12 @@ app.post("/deletenote", [
   // validate inputs
   body('note_id')
   .escape()
-  .notEmpty().withMessage("Cannot be empty")
-  .isNumeric().withMessage("Must be a number")
+    .notEmpty().withMessage("Cannot be empty")
+    .isNumeric().withMessage("Must be a number"),
+  body('list_id')
+    .escape()
+    .notEmpty().withMessage("Cannot be empty")
+    .isNumeric().withMessage("Must be a number"),
 ], (req,res) => {
   
   // catch validation error
@@ -187,8 +191,12 @@ app.post("/deletenote", [
 
   // catch errors
   .then(result => {
-    if(response.ok) { res.send("Successfully deleted note") }
-    else { res.send("Unable to delete note"); }
+    if(!result) { res.send("Unable to delete note") }
+
+    (async() => {
+      const notes = await getNotes(req.body.list_id)
+      res.send(notes)
+    })();
   })
   .catch(err => {
     console.error(err);
