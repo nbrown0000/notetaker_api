@@ -33,6 +33,16 @@ async function getListCount(list) {
 }
 
 
+// helper function for /getlists
+const getLists = user_id => {
+  return knex('lists').where({ user_id: user_id })
+  .then(lists => {
+    if(!lists[0]) {
+      return res.status(404).send("No lists found for user.");
+    }
+    return lists
+  })
+}
 
 
 app.post("/getlists", [
@@ -42,7 +52,7 @@ app.post("/getlists", [
     .escape()
     .notEmpty().withMessage("Must not be empty")
     .isNumeric().withMessage("Must be a number")
-], (req,res) => {
+], async (req,res) => {
 
   // catch validation error
   const errors = validationResult(req);
@@ -50,16 +60,9 @@ app.post("/getlists", [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  // get lists from DB
-  knex('lists').where({ user_id: req.body.user_id})
-  .then(lists => {
-    if(!lists[0]) {
-      console.error("No lists for user found");
-      return res.status(404).send("No lists found for user.");
-    }
-    res.send(lists)
-    
-  })
+  // return lists
+  const lists = await getLists(req.body.user_id)
+  res.send(lists);
 })
 
 
@@ -100,7 +103,13 @@ app.post("/addlist", [
     // catch errors
     .then(lists => {
       if(!lists) { console.error("Unable to add list.") }
-      res.status(200).send("list added sucessfully")
+
+      // return lists
+      (async() => {
+        const lists = await getLists(req.body.user_id)
+        res.send(lists);
+      })();
+
     })
     .catch(err => {
       console.error(err);
