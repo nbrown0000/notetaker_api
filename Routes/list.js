@@ -38,7 +38,7 @@ const getLists = user_id => {
   return knex('lists').where({ user_id: user_id })
   .then(lists => {
     if(!lists[0]) {
-      return res.status(404).send("No lists found for user.");
+      return [];
     }
     return lists
   })
@@ -171,6 +171,10 @@ app.post("/updatelist", [
 app.post("/deletelist", [
 
   // validate inputs
+  body('user_id')
+    .escape()
+    .notEmpty().withMessage("Must not be empty")
+    .isNumeric().withMessage("Must be a number"),
   body('list_id')
   .escape()
   .notEmpty().withMessage("Cannot be empty")
@@ -185,9 +189,12 @@ app.post("/deletelist", [
 
   knex('lists').where({ list_id: req.body.list_id })
   .del()
-  .then(lists => {
+  .then(async lists => {
     if(!lists) { console.error("Unable to delete list.") }
-    res.status(200).send("list deleted sucessfully")
+    
+    // return updated lists
+    const updatedLists = await getLists(req.body.user_id)
+    res.send(updatedLists);
   })
   .catch(err => {
     console.error(err);
